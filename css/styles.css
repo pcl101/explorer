@@ -1,0 +1,320 @@
+/* ────────────────────────────────────────────────
+   CSS Custom Properties (Light = default)
+───────────────────────────────────────────────── */
+:root {
+    --bg-body:          #f8f9fa;
+    --bg-card:          white;
+    --bg-statcard:      #f8f9fa;
+    --bg-chart:         white;
+    --bg-current-sel:   #e3f2fd;
+    --bg-hover:         #f8f9fa;
+    --bg-table-hover:   #f8f9fa;
+    --bg-sortable-hover:#e9ecef;
+    --bg-available:     #d4edda;
+    --bg-not-available: #f8f9fa;
+    --bg-orange-row:    #fff3cd;
+    --bg-orange-hover:  #ffeaa7;
+
+    --text-primary:     #212529;
+    --text-title:       #0d6efd;
+    --text-muted:       #6c757d;
+    --text-current-sel: #0d6efd;
+    --text-available:   #155724;
+    --text-orange:      #856404;
+
+    --border-card:      rgba(0,0,0,.1);
+    --border-table:     #dee2e6;
+    --shadow-card:      0 4px 16px rgba(0,0,0,.1);
+    --shadow-light:     0 2px 8px rgba(13,110,253,.1);
+}
+
+/* ────────────────────────────────────────────────
+   Dark mode overrides
+───────────────────────────────────────────────── */
+:root.dark {
+    --bg-body:          #121212;
+    --bg-card:          #1e1e1e;
+    --bg-statcard:      #1e1e1e;
+    --bg-chart:         #1e1e1e;
+    --bg-current-sel:   #2a3a4a;
+    --bg-hover:         #2a2a2a;
+    --bg-table-hover:   #2a2a2a;
+    --bg-sortable-hover:#333;
+    --bg-available:     #2e7d32;          /* donkerder groen */
+    --bg-not-available: #1e1e1e;
+    --bg-orange-row:    #5c4a00;          /* donker oranje/amber */
+    --bg-orange-hover:  #7a6200;
+
+    --text-primary:     #e0e0e0;
+    --text-title:       #6ab0ff;          /* zachter blauw */
+    --text-muted:       #a0a0a0;
+    --text-current-sel: #8ab4ff;
+    --text-available:   #c8e6c9;
+    --text-orange:      #ffecb3;
+
+    --border-card:      #333;
+    --border-table:     #444;
+    --shadow-card:      0 4px 16px rgba(0,0,0,.4);
+    --shadow-light:     0 2px 8px rgba(0,0,0,.5);
+	
+	--bs-table-bg: #1e1e1e;
+    --bs-table-color: #e0e0e0;
+    --bs-table-border-color: #444;
+    --bs-table-hover-bg: #2a2a2a;
+    --bs-table-striped-bg: rgba(255,255,255,0.04);
+	
+	/* ────────────────────────────────────────────────
+   Table overrides – vooral voor Bootstrap table-light en algemene tables
+───────────────────────────────────────────────── */
+
+/* Basis table in light/dark */
+.table {
+    --bs-table-bg: var(--bg-card);
+    --bs-table-color: var(--text-primary);
+    --bs-table-border-color: var(--border-table);
+    --bs-table-striped-bg: rgba(var(--text-primary-rgb, 0,0,0), 0.03); /* licht gestreept in light */
+    --bs-table-hover-bg: var(--bg-table-hover);
+}
+
+/* Specifiek de table-light class overriden (die vaak op thead staat) */
+.table-light,
+.table-light > th,
+.table-light > td {
+    --bs-table-bg: var(--bg-card) !important;
+    --bs-table-color: var(--text-primary) !important;
+    background-color: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-table) !important;
+}
+
+/* Hover op hele tabel */
+.table-hover > tbody > tr:hover > * {
+    --bs-table-bg-state: var(--bg-hover) !important;
+    --bs-table-color-state: var(--text-primary) !important;
+    background-color: var(--bg-hover) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Dark mode extra contrast voor headers */
+:root.dark .table thead th {
+    background-color: #2a2a2a;           /* iets donkerder dan body voor scheiding */
+    color: #e0e0e0;
+    border-bottom: 2px solid #444;
+}
+
+/* Zorg dat gestreepte rijen ook donker werken */
+:root.dark .table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-bg-type: rgba(255,255,255,0.04) !important;
+    background-color: rgba(255,255,255,0.04) !important;
+}
+}
+
+:root.dark .table-light,
+:root.dark .table-light th,
+:root.dark .table-light td {
+    background-color: var(--bs-table-bg) !important;
+    color: var(--bs-table-color) !important;
+    border-color: var(--bs-table-border-color) !important;
+}
+
+/* ────────────────────────────────────────────────
+   Globale stijlen
+───────────────────────────────────────────────── */
+body {
+    padding: 20px;
+    background: var(--bg-body);
+    color: var(--text-primary);
+}
+
+.current-selection {
+    font-weight: 600;
+    color: var(--text-current-sel);
+    background: var(--bg-current-sel);
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    font-size: 1.1em;
+    box-shadow: var(--shadow-light);
+}
+
+.page-card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border-card);
+    box-shadow: var(--shadow-card);
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.page-title {
+    font-size: 2.2rem;
+    color: var(--text-title);
+}
+
+.subtitle {
+    font-style: italic;
+    color: var(--text-muted);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+    padding: 0 10px;
+}
+
+.stat-card {
+    background: var(--bg-statcard);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid var(--border-table);
+}
+
+.stat-value {
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: var(--text-title);
+    margin: 10px 0;
+}
+
+.stat-label {
+    font-size: 1rem;
+    color: var(--text-muted);
+}
+
+.chart-container {
+    margin-bottom: 40px;
+    padding: 20px;
+    background: var(--bg-chart);
+    border-radius: 8px;
+    border: 1px solid var(--border-card);
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+th.sortable:hover {
+    background: var(--bg-sortable-hover);
+}
+
+.clickable-row {
+    cursor: pointer;
+}
+
+.clickable-row:hover {
+    background: var(--bg-hover) !important;
+}
+
+.available {
+    background: var(--bg-available);
+    color: var(--text-available);
+    text-align: center;
+    font-weight: bold;
+}
+
+.not-available {
+    background: var(--bg-not-available);
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.pagination-info {
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+.orange-row {
+    background-color: var(--bg-orange-row) !important;
+}
+
+.orange-row td {
+    background-color: inherit !important;
+}
+
+.orange-row:hover {
+    background-color: var(--bg-orange-hover) !important;
+}
+
+.expired-date {
+    color: var(--text-orange);
+    font-size: 0.9em;
+    font-weight: normal;
+}
+
+.info-icon {
+    cursor: pointer;
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.info-icon:hover {
+    transform: scale(1.2);
+    color: var(--text-title) !important;
+}
+
+/* ────────────────────────────────────────────────
+   Print-stijlen (meestal light forceren)
+───────────────────────────────────────────────── */
+@media print {
+    :root {
+        --bg-body: white !important;
+        --bg-card: white !important;
+        --text-primary: black !important;
+        --text-muted: #555 !important;
+        --text-title: #0d6efd !important;
+    }
+    .no-print {
+        display: none !important;
+    }
+    body {
+        background: white;
+        padding: 0;
+        margin: 0;
+    }
+    .page-card {
+        box-shadow: none;
+        border-radius: 0;
+        padding: 10px;
+        margin: 0;
+    }
+    .current-selection {
+        box-shadow: none;
+        background: #f8f9fa;
+        margin: 0 0 15px 0;
+    }
+    table {
+        width: 100%;
+        font-size: 9pt;
+        page-break-inside: auto;
+    }
+    tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+    th, td {
+        padding: 4px 6px;
+    }
+    h1, h3, h5 {
+        margin: 8px 0;
+    }
+	
+}

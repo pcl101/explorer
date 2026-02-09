@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="nl" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curio Keuzedelen Explorer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Toegevoegd: jsPDF + autoTable voor PDF generatie -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- Hoofdweergave -->
+        <div id="mainView" class="page-card">
+            <div class="page-header position-relative">
+                <h1 class="page-title text-center">Curio Keuzedelen Explorer</h1>
+                <p class="subtitle text-center text-secondary fs-6 mt-1 mb-0">
+                    Op basis van: Osiris actieve examenplannen 01-08-2025 / Ondoelmatige overlap 30-10-2025
+                </p>
+
+                <!-- Thema toggle rechtsboven -->
+                <button id="theme-toggle" class="btn btn-outline-secondary position-absolute top-0 end-0 mt-2 me-3" 
+                        title="Wissel tussen licht en donker thema">
+                    <i class="bi bi-moon-stars-fill theme-icon-dark"></i>
+                    <i class="bi bi-sun-fill theme-icon-light d-none"></i>
+                </button>
+            </div>
+
+            <div id="currentSelection" class="current-selection text-center mb-4">
+                Huidige filters: alle sectoren, alle leerwegen, alle cohorten, alle opleidingen
+            </div>
+
+            <div class="row mb-4 g-3 align-items-end">
+                <div class="col-md-2">
+                    <label for="sectorFilter" class="form-label">Sector</label>
+                    <select id="sectorFilter" class="form-select">
+                        <option value="">Alle sectoren</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="leerwegFilter" class="form-label">Leerweg</label>
+                    <select id="leerwegFilter" class="form-select">
+                        <option value="">Alle leerwegen</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <label for="cohortFilter" class="form-label">Cohort</label>
+                    <select id="cohortFilter" class="form-select">
+                        <option value="">Alle cohorten</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="opleidingFilter" class="form-label">Opleiding</label>
+                    <select id="opleidingFilter" class="form-select">
+                        <option value="">Alle opleidingen</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="searchFilter" class="form-label">Zoek op Kwalificatie / Omschrijving</label>
+                    <input type="text" id="searchFilter" class="form-control" placeholder="Bijv. K0022 of duurzaam">
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button id="resetFiltersBtn" class="btn btn-outline-danger w-100">Wis</button>
+                </div>
+            </div>
+
+            <div class="mb-4 no-print text-center">
+                <button class="btn btn-success me-2" id="exportCsvBtn">CSV</button>
+                <button class="btn btn-success me-2" id="exportJsonBtn">JSON</button>
+                <!-- Gewijzigd: Print → PDF -->
+                <button class="btn btn-success me-2" id="printBtn">PDF</button>
+                <button class="btn btn-success me-2" id="showStatsBtn">Statistieken</button>
+                <button class="btn btn-success me-2" id="showTrendsBtn">Trends</button>
+                <button class="btn btn-success me-2" id="showOverlapBtn">Spreiding</button>
+                <button class="btn btn-success me-2" id="showExpiredBtn">Vervallen</button>
+            </div>
+
+            <h3 class="text-center mb-4">Beschikbare keuzedelen <span id="resultCount" >()</span></h3>
+            <div class="table-responsive mb-4">
+                <table id="mainTable" class="table table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="sortable">Keuzedeel</th>
+                            <th class="sortable">Omschrijving</th>
+                            <th class="sortable">Beschikbaar in cohorten</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kwalificatiesTable"></tbody>
+                </table>
+            </div>
+            <div id="mainPagination" class="pagination-controls no-print text-center mt-3"></div>
+        </div>
+
+        <!-- Statistieken -->
+        <div id="statsView" class="page-card" style="display:none;">
+            <div class="page-header position-relative">
+                <h1 class="page-title text-center">Curio Keuzedelen Explorer</h1>
+                <p class="subtitle text-center text-secondary fs-6 mt-1 mb-0">
+                    Op basis van: Actieve examenplannen 01-08-2025 / Ondoelmatige overlap 30-10-2025
+                </p>
+            </div>
+            <button class="btn btn-outline-secondary mb-4 back-btn no-print">← Terug</button>
+            <div class="current-selection text-center mb-4">
+                Huidige filters: <strong id="statsSelectionText"></strong>
+            </div>
+            <h3 class="text-center mb-4">Statistieken</h3>
+            <div class="stats-grid mb-4">
+                <div class="stat-card"><div class="stat-value" id="statKeuzedelen">0</div><div class="stat-label">Unieke keuzedelen</div></div>
+                <div class="stat-card"><div class="stat-value" id="statOpleidingen">0</div><div class="stat-label">Unieke opleidingen</div></div>
+                <div class="stat-card"><div class="stat-value" id="statCohorten">0</div><div class="stat-label">Cohorten</div></div>
+                <div class="stat-card"><div class="stat-value" id="statRecords">0</div><div class="stat-label">Combinaties</div></div>
+            </div>
+            <h4 class="text-center mb-4">Top 10 keuzedelen</h4>
+            <ol id="top10List" class="mx-auto mb-4" style="max-width: 800px;"></ol>
+        </div>
+
+        <!-- Trends -->
+        <div id="trendsView" style="display:none;">
+            <div class="page-card">
+                <div class="page-header"><h1 class="page-title">Curio Keuzedelen Explorer</h1></div>
+                <button class="btn btn-outline-secondary mb-4 back-btn no-print" data-return="mainView">← Terug</button>
+                <div class="current-selection text-center mb-4">
+					Huidige filters: <strong id="trendsSelectionText"></strong>
+				</div>
+                <div class="chart-container"><h4 class="text-center">Aantal unieke keuzedelen per cohort</h4><canvas id="uniqueKeuzChart"></canvas></div>
+                <div class="chart-container"><h4 class="text-center">Nieuwe keuzedelen per cohort</h4><canvas id="newKeuzChart"></canvas></div>
+                <div class="chart-container">
+                    <h4 class="text-center">Top 10 keuzedelen beschikbaarheid</h4>
+                    <div class="table-responsive">
+                        <table id="availabilityTableBody" class="table table-bordered table-hover mx-auto" style="max-width: 1000px;">
+                            <thead class="table-light" id="availabilityHeader"></thead>
+                            <tbody id="availabilityBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="availabilityPagination" class="pagination-controls no-print"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spreiding (overlap) -->
+        <div id="overlapView" class="page-card" style="display:none;">
+            <div class="page-header position-relative">
+                <h1 class="page-title text-center">Curio Keuzedelen Explorer</h1>
+                <p class="subtitle text-center text-secondary fs-6 mt-1 mb-0">
+                    Op basis van: Actieve examenplannen 01-08-2025 / Ondoelmatige overlap 30-10-2025
+                </p>
+            </div>
+            <button class="btn btn-outline-secondary mb-4 back-btn no-print">← Terug</button>
+            <div class="current-selection text-center mb-4">
+                Huidige filters: <strong id="overlapSelectionText"></strong>
+            </div>
+            <div class="mb-4 no-print text-center">
+                <button class="btn btn-success me-2" id="exportCsvOverlapBtn">CSV</button>
+                <button class="btn btn-success me-2" id="exportJsonOverlapBtn">JSON</button>
+                <button class="btn btn-success me-2" id="printOverlapBtn">PDF</button>
+            </div>
+            <h3 class="text-center mb-4">Keuzedelen met spreiding over sectoren</h3>
+            <div class="table-responsive mb-4">
+                <table id="overlapTable" class="table table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="sortable">Keuzedeel</th>
+                            <th class="sortable">Omschrijving</th>
+                            <th class="sortable">Sectoren</th>
+                            <th class="sortable">Opleidingen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="overlapTableBody"></tbody>
+                </table>
+            </div>
+            <div id="overlapPagination" class="pagination-controls no-print text-center mt-3"></div>
+        </div>
+
+        <!-- Vervallen keuzedelen -->
+        <div id="expiredView" class="page-card" style="display:none;">
+            <div class="page-header position-relative">
+                <h1 class="page-title text-center">Curio Keuzedelen Explorer</h1>
+                <p class="subtitle text-center text-secondary fs-6 mt-1 mb-0">
+                    Op basis van: Actieve examenplannen 01-08-2025 / Ondoelmatige overlap 30-10-2025
+                </p>
+            </div>
+            <button class="btn btn-outline-secondary mb-4 back-btn no-print">← Terug</button>
+            <div class="current-selection text-center mb-4">
+                Huidige filters: <strong id="expiredSelectionText"></strong>
+            </div>
+            <div class="mb-4 no-print text-center">
+                <button class="btn btn-success me-2" id="exportCsvExpiredBtn">CSV</button>
+                <button class="btn btn-success me-2" id="exportJsonExpiredBtn">JSON</button>
+                <button class="btn btn-success me-2" id="printExpiredBtn">PDF</button>
+            </div>
+            <h3 class="text-center mb-4">Vervallen keuzedelen <span id="expiredCount" </span></h3>
+            <div class="table-responsive mb-4">
+                <table id="expiredTable" class="table table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="sortable">Keuzedeel</th>
+                            <th class="sortable">Omschrijving</th>
+                            <th class="sortable">Vervaldatum</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expiredTableBody"></tbody>
+                </table>
+            </div>
+            <div id="expiredPagination" class="pagination-controls no-print text-center mt-3"></div>
+        </div>
+
+        <!-- Detail (normaal) -->
+        <div id="detailView" class="page-card" style="display:none;">
+            <div class="page-header position-relative">
+                <h1 class="page-title text-center">Curio Keuzedelen Explorer</h1>
+                <p class="subtitle text-center text-secondary fs-6 mt-1 mb-0">
+                    Op basis van: Actieve examenplannen 01-08-2025 / Ondoelmatige overlap 30-10-2025
+                </p>
+            </div>
+            <button class="btn btn-outline-secondary mb-4 back-btn no-print">← Terug</button>
+            <div class="current-selection text-center mb-4">
+                Huidige filters: <strong id="detailSelectionText"></strong>
+            </div>
+            <div class="mb-4 no-print text-center">
+                <button class="btn btn-success me-2" id="exportCsvDetailBtn">CSV</button>
+                <button class="btn btn-success me-2" id="exportJsonDetailBtn">JSON</button>
+                <button class="btn btn-success me-2" id="printDetailBtn">PDF</button>
+            </div>
+            <h3 id="detailTitle" class="text-center mb-4"></h3>
+            <h5 class="text-center mb-4">Dit keuzedeel wordt aangeboden in:</h5>
+            <div class="table-responsive mb-4">
+                <table id="detailTable" class="table table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="sortable">Sector</th>
+                            <th class="sortable">Opleiding (CREBO)</th>
+                            <th class="sortable">Cohorten</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detailTableBody"></tbody>
+                </table>
+            </div>
+            <div id="detailPagination" class="pagination-controls no-print text-center mt-3"></div>
+        </div>
+
+        <!-- Detail voor vervallen keuzedeel -->
+        <div id="expiredDetailView" class="page-card" style="display:none;">
+            <div class="page-header position-relative">
+                <h1 class="page-title text-center">Curio Keuzedelen Explorer</h1>
+                <p class="subtitle text-center text-secondary fs-6 mt-1 mb-0">
+                    Op basis van: Actieve examenplannen 01-08-2025 / Ondoelmatige overlap 30-10-2025
+                </p>
+            </div>
+            <button class="btn btn-outline-secondary mb-4 back-btn no-print">← Terug</button>
+            <div class="current-selection text-center mb-4">
+                Huidige filters: <strong id="expiredDetailSelectionText"></strong>
+            </div>
+            <div class="mb-4 no-print text-center">
+                <button class="btn btn-success me-2" id="exportCsvExpiredDetailBtn">CSV</button>
+                <button class="btn btn-success me-2" id="exportJsonExpiredDetailBtn">JSON</button>
+                <button class="btn btn-success me-2" id="printExpiredDetailBtn">PDF</button>
+            </div>
+            <h3 id="expiredDetailTitle" class="text-center mb-4"></h3>
+            <h5 class="text-center mb-4">Dit vervallen keuzedeel werd aangeboden in:</h5>
+            <div class="table-responsive mb-4">
+                <table id="expiredDetailTable" class="table table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="sortable">Sector</th>
+                            <th class="sortable">Opleiding (CREBO)</th>
+                            <th class="sortable">Cohorten</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expiredDetailTableBody"></tbody>
+                </table>
+            </div>
+            <div id="expiredDetailPagination" class="pagination-controls no-print text-center mt-3"></div>
+        </div>
+
+        <!-- SBB Detail -->
+        <div id="sbbDetailView" class="page-card" style="display:none;">
+            <div class="page-header position-relative">
+                <h1 class="page-title text-center">Curio Keuzedelen Explorer</h1>
+                <p class="subtitle text-center text-secondary fs-6 mt-1 mb-0">
+                    Op basis van: Actieve examenplannen 01-08-2025 / Ondoelmatige overlap 30-10-2025
+                </p>
+            </div>
+            <button class="btn btn-outline-secondary mb-4 back-btn no-print">← Terug</button>
+            <div class="current-selection text-center mb-4">
+                <strong id="sbbDetailSelectionText"></strong>
+            </div>
+            <div class="mb-4 no-print text-center">
+                <!-- Geen knoppen hier -->
+            </div>
+            <h3 id="sbbDetailTitle" class="text-center mb-4"></h3>
+            <div class="table-responsive mb-4">
+                <table id="sbbInfoTable" class="table table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr><th>Eigenschap</th><th>Waarde</th></tr>
+                    </thead>
+                    <tbody id="sbbInfoBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Overlap detail per keuzedeel -->
+        <div id="overlapDetailView" class="page-card" style="display:none;">
+            <div class="page-header position-relative">
+                <h1 class="page-title text-center">Curio Keuzedelen Explorer</h1>
+                <p class="subtitle text-center text-secondary fs-6 mt-1 mb-0">
+                    Op basis van: Actieve examenplannen 01-08-2025 / Ondoelmatige overlap 30-10-2025
+                </p>
+            </div>
+            <button class="btn btn-outline-secondary mb-4 back-btn no-print">← Terug</button>
+            <div class="current-selection text-center mb-4">
+                Huidige filters: <strong id="overlapDetailSelectionText"></strong>
+            </div>
+            <div class="mb-4 no-print text-center">
+                <button class="btn btn-success me-2" id="exportCsvOverlapDetailBtn">CSV</button>
+                <button class="btn btn-success me-2" id="exportJsonOverlapDetailBtn">JSON</button>
+                <button class="btn btn-success me-2" id="printOverlapDetailBtn">PDF</button>
+            </div>
+            <h3 id="overlapDetailTitle" class="text-center mb-4"></h3>
+            <h5 class="text-center mb-4">Opleidingen waarvoor dit keuzedeel overlap heeft:</h5>
+            <div class="table-responsive mb-4">
+                <table id="overlapDetailTable" class="table table-hover table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="sortable">CREBO</th>
+                            <th class="sortable">Opleiding (cohorten)</th>
+                            <th class="sortable">Publicatiedatum</th>
+                        </tr>
+                    </thead>
+                    <tbody id="overlapDetailTableBody"></tbody>
+                </table>
+            </div>
+            <div id="overlapDetailPagination" class="pagination-controls no-print text-center mt-3"></div>
+        </div>
+
+        <div id="loading" class="alert alert-info text-center mt-5 no-print" style="max-width: 600px; margin: 0 auto;">Data laden...</div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
