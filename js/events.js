@@ -29,15 +29,12 @@ export function initEventListeners() {
     document.getElementById('showExpiredBtn')?.addEventListener('click', () =>
         showViewWithHistory('expiredView', updateExpiredPage));
 
-    // PDF knoppen (vervangen print → pdf, zelfde functie behouden)
+    // PDF knoppen
     document.getElementById('printBtn')?.addEventListener('click', printFullSelection);
     document.getElementById('printDetailBtn')?.addEventListener('click', printDetailSelection);
     document.getElementById('printExpiredDetailBtn')?.addEventListener('click', printExpiredDetailSelection);
     document.getElementById('printOverlapDetailBtn')?.addEventListener('click', printOverlapDetailSelection);
 
-    // Optioneel: als je later een aparte print voor overlap/exprired wilt:
-    // document.getElementById('printOverlapBtn')?.addEventListener('click', printFullSelection);
-	
     // Export en print knoppen - spreiding / overlap view
     document.getElementById('exportCsvOverlapBtn')?.addEventListener('click', () => exportCurrentSelection('csv'));
     document.getElementById('exportJsonOverlapBtn')?.addEventListener('click', () => exportCurrentSelection('json'));

@@ -24,6 +24,7 @@ export function printFullSelection() {
         viewTitle = 'Vervallen Keuzedelen';
         countText = `${dataToPrint.length} vervallen keuzedelen`;
     } else if (view === 'overlapView' && appState.overlapExportData) {
+        // Overlap view: SECTOREN bevat sector informatie
         dataToPrint = appState.overlapExportData.map(d => ({
             KWALIFICATIE: d.KWALIFICATIE,
             OMSCHRIJVING: d.OMSCHRIJVING,
@@ -352,15 +353,23 @@ export function exportCurrentSelection(format = 'csv') {
     
     if (view === 'expiredView' && appState.expiredData) {
         // Expired view: gebruik opgeslagen expired data
+        // Let op: vervaldatum is geen cohort, dus we slaan het over voor cohort filtering
         dataToExport = appState.expiredData.map(item => ({
             KWALIFICATIE: item.code,
             OMSCHRIJVING: item.omschrijving,
-            COHORT: item.vervaldatum
+            COHORT: item.vervaldatum, // Dit is eigenlijk een datum, niet een cohort
+            VERVALDATUM: item.vervaldatum
         }));
         filename = 'curio_vervallen_keuzedelen';
     } else if (view === 'overlapView' && appState.overlapExportData) {
         // Overlap view: gebruik opgeslagen overlap data
-        dataToExport = appState.overlapExportData;
+        // SECTOREN bevat sector informatie, niet cohorten
+        dataToExport = appState.overlapExportData.map(item => ({
+            KWALIFICATIE: item.KWALIFICATIE,
+            OMSCHRIJVING: item.OMSCHRIJVING,
+            SECTOREN: item.SECTOREN,
+            COHORT: item.SECTOREN // Gebruik sectoren als "cohort" vervanger voor compatibiliteit
+        }));
         filename = 'curio_spreiding_keuzedelen';
     } else {
         // Hoofdview of andere views: gebruik gefilterde data
