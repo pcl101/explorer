@@ -123,7 +123,7 @@ export function renderKwalificaties() {
     });
 
     appState.pagination = appState.pagination || {};
-    appState.pagination.main = { page: 1, size: 25, data: rows };
+    appState.pagination.main = { page: 1, size: 10, data: rows };
 
     renderPage('main');
     renderPagination('main', rows.length);
@@ -177,7 +177,7 @@ export function updateExpiredPage() {
     }
 
     appState.pagination = appState.pagination || {};
-    appState.pagination.expired = { page: 1, size: 25, data: rows };
+    appState.pagination.expired = { page: 1, size: 10, data: rows };
 
     renderPage('expired');
     renderPagination('expired', rows.length);
@@ -200,7 +200,7 @@ export function renderDetailOpleidingen() {
     const rows = createGroupedRows(grouped);
 
     appState.pagination = appState.pagination || {};
-    appState.pagination.detail = { page: 1, size: 25, data: rows };
+    appState.pagination.detail = { page: 1, size: 10, data: rows };
 
     renderPage('detail');
     renderPagination('detail', rows.length);
@@ -223,7 +223,7 @@ export function renderExpiredDetailOpleidingen() {
     const rows = createGroupedRows(grouped);
 
     appState.pagination = appState.pagination || {};
-    appState.pagination.expiredDetail = { page: 1, size: 25, data: rows };
+    appState.pagination.expiredDetail = { page: 1, size: 10, data: rows };
 
     renderPage('expiredDetail');
     renderPagination('expiredDetail', rows.length);
@@ -291,7 +291,7 @@ const opleidingData = appState.rawData
     // Optioneel: pagination bijwerken
     const rowCount = tbody.querySelectorAll('tr').length;
     appState.pagination = appState.pagination || {};
-    appState.pagination.overlapDetail = { page: 1, size: 25, data: [] };
+    appState.pagination.overlapDetail = { page: 1, size: 10, data: [] };
     renderPage('overlapDetail');
     renderPagination('overlapDetail', rowCount);
     makeSortable('overlapDetailTable', 'overlapDetail');
@@ -416,7 +416,7 @@ export function updateOverlapPage() {
         });
 
     appState.pagination = appState.pagination || {};
-    appState.pagination.overlap = { page: 1, size: 25, data: rows };
+    appState.pagination.overlap = { page: 1, size: 10, data: rows };
 
     renderPage('overlap');
     renderPagination('overlap', rows.length);

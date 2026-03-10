@@ -54,7 +54,12 @@ export function initEventListeners() {
     ['sectorFilter','leerwegFilter','cohortFilter','opleidingFilter'].forEach(id =>
         document.getElementById(id)?.addEventListener('change', applyFilters));
 
-    document.getElementById('searchFilter')?.addEventListener('input', applyFilters);
+    // Search input met debounce (300ms)
+    let searchTimeout;
+    document.getElementById('searchFilter')?.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => applyFilters(), 300);
+    });
 
     // Export knoppen - hoofdpagina
     document.getElementById('exportCsvBtn')?.addEventListener('click', () => exportCurrentSelection('csv'));
