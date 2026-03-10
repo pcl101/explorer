@@ -11,8 +11,55 @@ export function printFullSelection() {
             return;
         }
 
-        // Gebruik ALTIJD de huidige selectie (gefilderde data)
-        const dataToPrint = appState.currentData;
+        // Bepaal data op basis van huidige view
+        let dataToPrint;
+        let viewTitle = 'Huidige Selectie';
+        
+        const view = appState.currentView;
+        
+        if (view === 'overlapView') {
+            // Spreiding: bereken opnieuw op basis van huidige selectie
+            const currentSet = new Set(appState.currentData.map(r => r.KWALIFICATIE));
+            const overlap = {};
+            appState.rawData.forEach(r => {
+                if (!currentSet.has(r.KWALIFICATIE)) return;
+                if (!overlap[r.KWALIFICATIE]) {
+                    overlap[r.KWALIFICATIE] = { omschrijving: r.OMSCHRIJVING || 'Onbekend', sectoren: new Set() };
+                }
+                overlap[r.KWALIFICATIE].sectoren.add(r.SECTOR);
+            });
+            // Alleen met spreiding
+            const overlapEntries = Object.entries(overlap).filter(([,v]) => v.sectoren.size > 1);
+            dataToPrint = overlapEntries.map(([code, data]) => ({
+                KWALIFICATIE: code,
+                OMSCHRIJVING: data.omschrijving,
+                SECTOREN: [...data.sectoren].sort().join(', ')
+            }));
+            viewTitle = 'Spreiding';
+        } else if (view === 'expiredView') {
+            // Vervallen: bereken opnieuw
+            const relevantCodes = new Set(appState.currentData.map(r => r.KWALIFICATIE));
+            const expiredList = [];
+            const seen = new Set();
+            appState.sbbData.forEach(entry => {
+                const code = entry.code;
+                if (!relevantCodes.has(code) || seen.has(code)) return;
+                seen.add(code);
+                const trimmed = String(entry.einddatum || '').trim();
+                if (trimmed && trimmed !== 'null' && trimmed !== 'undefined') {
+                    expiredList.push({
+                        KWALIFICATIE: code,
+                        OMSCHRIJVING: entry.titel || 'Geen omschrijving',
+                        VERVALLDATUM: trimmed
+                    });
+                }
+            });
+            dataToPrint = expiredList;
+            viewTitle = 'Vervallen Keuzedelen';
+        } else {
+            // Hoofdview
+            dataToPrint = appState.currentData;
+        }
 
         const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
@@ -24,7 +71,7 @@ export function printFullSelection() {
         const resultCountText = resultCountElem ? resultCountElem.innerText.trim().replace(/[()]/g, '') : '';
 
         doc.setFontSize(16);
-        doc.text('Curio Keuzedelen Explorer - Huidige Selectie', 14, 15);
+        doc.text(`Curio Keuzedelen Explorer - ${viewTitle}`, 14, 15);
 
         doc.setFontSize(11);
         doc.setTextColor(100);
@@ -36,48 +83,67 @@ export function printFullSelection() {
 
         doc.line(14, resultCountText ? 38 : 32, 280, resultCountText ? 38 : 32);
 
-        doc.setFontSize(11);
-        doc.setTextColor(100);
-        doc.text(selectionText, 14, 22);
-        if (resultCountText) {
-            doc.text(`Aantal unieke keuzedelen: ${resultCountText}`, 14, 28);
+        // Unieke keuzedelen verzamelen - aangepast per view
+        let uniqueData;
+        
+        if (view === 'overlapView') {
+            // Voor spreiding: gebruik direct de dataToPrint
+            uniqueData = dataToPrint.map(r => ({
+                kwalificatie: r.KWALIFICATIE,
+                omschrijving: r.OMSCHRIJVING,
+                info: r.SECTOREN
+            }));
+        } else if (view === 'expiredView') {
+            // Voor vervallen
+            uniqueData = dataToPrint.map(r => ({
+                kwalificatie: r.KWALIFICATIE,
+                omschrijving: r.OMSCHRIJVING,
+                info: r.VERVALLDATUM
+            }));
+        } else {
+            // Voor hoofdview: traditionele logica
+            const keuzedeelMap = {};
+            dataToPrint.forEach(r => {
+                const key = r.KWALIFICATIE;
+                if (!keuzedeelMap[key]) {
+                    keuzedeelMap[key] = {
+                        kwalificatie: key,
+                        omschrijving: r.OMSCHRIJVING || 'Geen omschrijving',
+                        cohorten: new Set()
+                    };
+                }
+                if (r.COHORT) {
+                    keuzedeelMap[key].cohorten.add(r.COHORT);
+                }
+            });
+            uniqueData = Object.values(keuzedeelMap).sort((a, b) => a.kwalificatie.localeCompare(b.kwalificatie));
         }
-        doc.text(`gegenereerd op: ${new Date().toLocaleString('nl-NL')}`, 14, resultCountText ? 34 : 28);
 
-        doc.line(14, resultCountText ? 38 : 32, 280, resultCountText ? 38 : 32);
-
-        // Unieke keuzedelen verzamelen
-        const keuzedeelMap = {};
-        dataToPrint.forEach(r => {
-        const key = r.KWALIFICATIE;
-        if (!keuzedeelMap[key]) {
-            keuzedeelMap[key] = {
-                kwalificatie: key,
-                omschrijving: r.OMSCHRIJVING || 'Geen omschrijving',
-                cohorten: new Set()
-            };
+        // Headers en body op basis van view
+        let headers, body;
+        
+        if (view === 'overlapView') {
+            headers = ['Keuzedeel', 'Omschrijving', 'Sectoren'];
+            body = uniqueData.map(entry => [
+                entry.kwalificatie || '',
+                entry.omschrijving || '',
+                entry.info || ''
+            ]);
+        } else if (view === 'expiredView') {
+            headers = ['Keuzedeel', 'Omschrijving', 'Vervaldatum'];
+            body = uniqueData.map(entry => [
+                entry.kwalificatie || '',
+                entry.omschrijving || '',
+                entry.info || ''
+            ]);
+        } else {
+            headers = ['Keuzedeel', 'Omschrijving', 'Beschikbaar in cohorten'];
+            body = uniqueData.map(entry => [
+                entry.kwalificatie || '',
+                entry.omschrijving || '',
+                [...entry.cohorten].sort((a, b) => a - b).join(', ')
+            ]);
         }
-        if (r.COHORT) {
-            keuzedeelMap[key].cohorten.add(r.COHORT);
-        }
-    });
-
-    // Sorteer op keuzedeel
-    const uniqueData = Object.values(keuzedeelMap).sort((a, b) => a.kwalificatie.localeCompare(b.kwalificatie));
-
-    // Headers
-    const headers = [
-        'Keuzedeel',
-        'Omschrijving',
-        'Beschikbaar in cohorten'
-    ];
-
-    // Body: cohorten als gesorteerde comma-gescheiden string
-    const body = uniqueData.map(entry => [
-        entry.kwalificatie || '',
-        entry.omschrijving || '',
-        [...entry.cohorten].sort((a, b) => a - b).join(', ')
-    ]);
 
     // autoTable
     const startY = resultCountText ? 42 : 36;
