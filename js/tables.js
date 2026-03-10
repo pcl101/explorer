@@ -5,6 +5,14 @@ import { showView, updateSelectionText } from './ui.js';
 
 const pageSizes = [10, 25, 50, 100];
 
+// XSS SAFE: Helper om HTML entities te escapen
+function escapeHtml(text) {
+    if (text == null) return '';
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+}
+
 // Helper: controleer of dit keuzedeel een relevante (Curio) overlap heeft
 function hasRelevantOverlapForCurio(kwalificatieCode) {
     const creboSet = appState.overlapCreboByKwal.get(kwalificatieCode);
@@ -46,7 +54,7 @@ export function renderKwalificaties() {
         if (sbbEntry?.einddatum) {
             const trimmed = String(sbbEntry.einddatum).trim();
             if (trimmed && trimmed !== 'null' && trimmed !== 'undefined') {
-                extraInfo = ` <span class="expired-date">(vervalt ${trimmed})</span>`;
+                extraInfo = ` <span class="expired-date">(vervalt ${escapeHtml(trimmed)})</span>`;
             }
         }
 
@@ -54,27 +62,27 @@ export function renderKwalificaties() {
         let overlapIcon = '';
         if (hasRelevantOverlapForCurio(k)) {
             overlapIcon = ` <i class="bi bi-exclamation-triangle text-danger overlap-icon cursor-pointer" 
-                              data-kwal="${k}" 
+                              data-kwal="${escapeHtml(k)}" 
                               title="Klik voor overlap details binnen Curio aanbod"></i>`;
         }
 
         const tr = document.createElement('tr');
         tr.className = 'clickable-row';
+        // XSS SAFE: escapeHtml op alle dynamische waarden
         tr.innerHTML = `
             <td>
-                <strong>${k}</strong>
+                <strong>${escapeHtml(k)}</strong>
                 <i class="bi bi-info-circle info-icon ms-2 text-primary" style="font-size:1.1rem;" title="Meer informatie over dit keuzedeel"></i>
             </td>
-            <td>${map[k].omschrijving}${overlapIcon}${extraInfo}</td>
-            <td>${cohorts}</td>
+            <td>${escapeHtml(map[k].omschrijving)}${overlapIcon}${extraInfo}</td>
+            <td>${escapeHtml(cohorts)}</td>
         `;
-
-        // if (extraInfo) tr.classList.add('orange-row');
 
         // Rij-klik: ga naar volledige detailView (alle opleidingen)
         tr.onclick = () => {
             appState.currentKeuzedeel = k;
             appState.currentOmschrijving = map[k].omschrijving;
+            // XSS SAFE: textContent in plaats van innerHTML
             document.getElementById('detailTitle').textContent = `Keuzedeel ${k} — ${appState.currentOmschrijving}`;
             showView('detailView');
             appState.viewHistory.push('detailView');
@@ -114,6 +122,7 @@ export function renderKwalificaties() {
             const k = e.target.dataset.kwal;
             appState.currentKeuzedeel = k;
             appState.currentOmschrijving = map[k]?.omschrijving || 'Geen omschrijving';
+            // XSS SAFE: textContent in plaats van innerHTML
             document.getElementById('overlapDetailTitle').textContent = `Overlap voor keuzedeel ${k} — ${appState.currentOmschrijving}`;
             showView('overlapDetailView');
             appState.viewHistory.push('overlapDetailView');
@@ -157,10 +166,12 @@ export function updateExpiredPage() {
     const rows = expiredList.map(item => {
         const tr = document.createElement('tr');
         tr.className = 'clickable-row';
-        tr.innerHTML = `<td><strong>${item.code}</strong></td><td>${item.omschrijving}</td><td>${item.vervaldatum}</td>`;
+        // XSS SAFE: escapeHtml op alle dynamische waarden
+        tr.innerHTML = `<td><strong>${escapeHtml(item.code)}</strong></td><td>${escapeHtml(item.omschrijving)}</td><td>${escapeHtml(item.vervaldatum)}</td>`;
         tr.onclick = () => {
             appState.currentKeuzedeel = item.code;
             appState.currentOmschrijving = item.omschrijving;
+            // XSS SAFE: textContent in plaats van innerHTML
             document.getElementById('expiredDetailTitle').textContent = `Vervallen keuzedeel ${item.code} — ${item.omschrijving}`;
             showView('expiredDetailView');
             appState.viewHistory.push('expiredDetailView');
@@ -253,17 +264,15 @@ export function renderOverlapDetail() {
         const crebo = String(item.Crebo);
 
         // Groepeer per opleiding + verzamel cohorten
-const opleidingData = appState.rawData
-    .filter(r => String(r.CREBO) === crebo && r.KWALIFICATIE === kwal)
-    .reduce((acc, r) => {
-        if (!acc[r.OPLEIDING]) {
-            acc[r.OPLEIDING] = new Set();
-        }
-        acc[r.OPLEIDING].add(r.COHORT);
-        return acc;
-    }, {});
-
-// console.log(`Voor CREBO ${crebo}:`, opleidingData);  // ← Tijdelijk toevoegen voor debug
+        const opleidingData = appState.rawData
+            .filter(r => String(r.CREBO) === crebo && r.KWALIFICATIE === kwal)
+            .reduce((acc, r) => {
+                if (!acc[r.OPLEIDING]) {
+                    acc[r.OPLEIDING] = new Set();
+                }
+                acc[r.OPLEIDING].add(r.COHORT);
+                return acc;
+            }, {});
 
         // Alleen rij toevoegen als er minstens één opleiding gevonden is
         if (Object.keys(opleidingData).length > 0) {
@@ -274,10 +283,11 @@ const opleidingData = appState.rawData
                 const cohortText = cohorts ? ` (${cohorts})` : '';
 
                 const tr = document.createElement('tr');
+                // XSS SAFE: escapeHtml op alle dynamische waarden
                 tr.innerHTML = `
-                    <td>${crebo}</td>
-                    <td>${opleiding}${cohortText}</td>
-                    <td>${excelToDate(item.datum)}</td>
+                    <td>${escapeHtml(crebo)}</td>
+                    <td>${escapeHtml(opleiding)}${escapeHtml(cohortText)}</td>
+                    <td>${escapeHtml(excelToDate(item.datum))}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -304,6 +314,7 @@ export function renderSbbDetail() {
 
     if (!titleEl || !tbody) return;
 
+    // XSS SAFE: textContent in plaats van innerHTML
     titleEl.textContent = entry
         ? `SBB Info voor ${appState.currentKeuzedeel} — ${entry.titel || '—'}`
         : `Geen SBB info voor ${appState.currentKeuzedeel}`;
@@ -341,7 +352,8 @@ export function renderSbbDetail() {
     fields.forEach(f => {
         if (f.value != null && f.value !== '') {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td><strong>${f.label}</strong></td><td>${f.value}</td>`;
+            // XSS SAFE: escapeHtml op alle dynamische waarden
+            tr.innerHTML = `<td><strong>${escapeHtml(f.label)}</strong></td><td>${escapeHtml(f.value)}</td>`;
             tbody.appendChild(tr);
         }
     });
@@ -350,6 +362,7 @@ export function renderSbbDetail() {
 export function updateStatisticsPage() {
     const setSize = field => new Set(appState.currentData.map(r => r[field])).size;
 
+    // XSS SAFE: textContent in plaats van innerHTML
     document.getElementById('statKeuzedelen').textContent = setSize('KWALIFICATIE');
     document.getElementById('statOpleidingen').textContent = setSize('OPLEIDING');
     document.getElementById('statCohorten').textContent = setSize('COHORT');
@@ -367,12 +380,21 @@ export function updateStatisticsPage() {
     const list = document.getElementById('top10List');
     if (!list) return;
 
-    list.innerHTML = top10.length ? '' : '<li class="text-muted">Geen data</li>';
+    list.innerHTML = '';
+    
+    if (!top10.length) {
+        const li = document.createElement('li');
+        li.className = 'text-muted';
+        li.textContent = 'Geen data';
+        list.appendChild(li);
+        return;
+    }
 
     top10.forEach(([code, cnt]) => {
         const omschrijving = appState.currentData.find(r => r.KWALIFICATIE === code)?.OMSCHRIJVING || 'Onbekend';
         const li = document.createElement('li');
-        li.innerHTML = `<strong>${code}</strong> — ${omschrijving} <span class="text-muted float-end">${cnt}×</span>`;
+        // XSS SAFE: escapeHtml op alle dynamische waarden
+        li.innerHTML = `<strong>${escapeHtml(code)}</strong> — ${escapeHtml(omschrijving)} <span class="text-muted float-end">${cnt}×</span>`;
         list.appendChild(li);
     });
 }
@@ -403,10 +425,12 @@ export function updateOverlapPage() {
         .map(([code, {omschrijving, sectoren, opleidingen}]) => {
             const tr = document.createElement('tr');
             tr.className = 'clickable-row';
-            tr.innerHTML = `<td><strong>${code}</strong></td><td>${omschrijving}</td><td>${sectoren.size}</td><td>${opleidingen.size}</td>`;
+            // XSS SAFE: escapeHtml op alle dynamische waarden
+            tr.innerHTML = `<td><strong>${escapeHtml(code)}</strong></td><td>${escapeHtml(omschrijving)}</td><td>${sectoren.size}</td><td>${opleidingen.size}</td>`;
             tr.onclick = () => {
                 appState.currentKeuzedeel = code;
                 appState.currentOmschrijving = omschrijving;
+                // XSS SAFE: textContent in plaats van innerHTML
                 document.getElementById('detailTitle').textContent = `Keuzedeel ${code} — ${omschrijving}`;
                 showView('detailView');
                 appState.viewHistory.push('detailView');
@@ -442,10 +466,11 @@ function createGroupedRows(grouped) {
         .sort((a,b) => a.sectoren.localeCompare(b.sectoren) || a.opleidingen.localeCompare(b.opleidingen))
         .map(item => {
             const tr = document.createElement('tr');
+            // XSS SAFE: escapeHtml op alle dynamische waarden
             tr.innerHTML = `
-                <td>${item.sectoren}</td>
-                <td>${item.opleidingen} (${item.crebo})</td>
-                <td>${[...item.cohorten].sort((a,b)=>a-b).join(', ')}</td>
+                <td>${escapeHtml(item.sectoren)}</td>
+                <td>${escapeHtml(item.opleidingen)} (${escapeHtml(item.crebo)})</td>
+                <td>${escapeHtml([...item.cohorten].sort((a,b)=>a-b).join(', '))}</td>
             `;
             return tr;
         });
