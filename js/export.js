@@ -12,29 +12,52 @@ export function printFullSelection() {
 
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
+    // Bepaal welke data te printen op basis van huidige view
+    let dataToPrint;
+    let viewTitle;
+    let countText;
+    
+    const view = appState.currentView;
+    
+    if (view === 'expiredView' && appState.expiredData) {
+        dataToPrint = appState.expiredData;
+        viewTitle = 'Vervallen Keuzedelen';
+        countText = `${dataToPrint.length} vervallen keuzedelen`;
+    } else if (view === 'overlapView' && appState.overlapExportData) {
+        dataToPrint = appState.overlapExportData.map(d => ({
+            KWALIFICATIE: d.KWALIFICATIE,
+            OMSCHRIJVING: d.OMSCHRIJVING,
+            COHORT: d.SECTOREN
+        }));
+        viewTitle = 'Spreiding Keuzedelen';
+        countText = `${dataToPrint.length} keuzedelen met spreiding`;
+    } else {
+        dataToPrint = appState.currentData;
+        viewTitle = 'Huidige Selectie';
+        const resultCountElem = document.getElementById('resultCount');
+        countText = resultCountElem ? resultCountElem.innerText.trim().replace(/[()]/g, '') : '';
+    }
+
     // Header informatie
     const selectionTextElem = document.getElementById('currentSelection');
     const selectionText = selectionTextElem ? selectionTextElem.innerText.trim() : 'Huidige selectie';
 
-    const resultCountElem = document.getElementById('resultCount');
-    const resultCountText = resultCountElem ? resultCountElem.innerText.trim().replace(/[()]/g, '') : '';
-
     doc.setFontSize(16);
-    doc.text('Curio Keuzedelen Explorer - Huidige Selectie', 14, 15);
+    doc.text(`Curio Keuzedelen Explorer - ${viewTitle}`, 14, 15);
 
     doc.setFontSize(11);
     doc.setTextColor(100);
     doc.text(selectionText, 14, 22);
-    if (resultCountText) {
-        doc.text(`Aantal unieke keuzedelen: ${resultCountText}`, 14, 28);
+    if (countText) {
+        doc.text(`Aantal: ${countText}`, 14, 28);
     }
-    doc.text(`gegenereerd op: ${new Date().toLocaleString('nl-NL')}`, 14, resultCountText ? 34 : 28);
+    doc.text(`gegenereerd op: ${new Date().toLocaleString('nl-NL')}`, 14, countText ? 34 : 28);
 
-    doc.line(14, resultCountText ? 38 : 32, 280, resultCountText ? 38 : 32);
+    doc.line(14, countText ? 38 : 32, 280, countText ? 38 : 32);
 
-    // Unieke keuzedelen verzamelen (zelfde logica als CSV-export)
+    // Unieke keuzedelen verzamelen
     const keuzedeelMap = {};
-    appState.currentData.forEach(r => {
+    dataToPrint.forEach(r => {
         const key = r.KWALIFICATIE;
         if (!keuzedeelMap[key]) {
             keuzedeelMap[key] = {
@@ -321,18 +344,43 @@ export function printOverlapDetailSelection() {
 export function exportCurrentSelection(format = 'csv') {
     if (!['csv', 'json'].includes(format)) return;
 
+    // Bepaal welke data te exporteren op basis van huidige view
+    let dataToExport;
+    let filename;
+    
+    const view = appState.currentView;
+    
+    if (view === 'expiredView' && appState.expiredData) {
+        // Expired view: gebruik opgeslagen expired data
+        dataToExport = appState.expiredData.map(item => ({
+            KWALIFICATIE: item.code,
+            OMSCHRIJVING: item.omschrijving,
+            COHORT: item.vervaldatum
+        }));
+        filename = 'curio_vervallen_keuzedelen';
+    } else if (view === 'overlapView' && appState.overlapExportData) {
+        // Overlap view: gebruik opgeslagen overlap data
+        dataToExport = appState.overlapExportData;
+        filename = 'curio_spreiding_keuzedelen';
+    } else {
+        // Hoofdview of andere views: gebruik gefilterde data
+        dataToExport = appState.currentData;
+        filename = 'curio_keuzedelen_per_cohort';
+    }
+
     const keuzedeelMap = {};
-    appState.currentData.forEach(r => {
-        if (!keuzedeelMap[r.KWALIFICATIE]) {
-            keuzedeelMap[r.KWALIFICATIE] = {
+    dataToExport.forEach(r => {
+        const key = r.KWALIFICATIE;
+        if (!keuzedeelMap[key]) {
+            keuzedeelMap[key] = {
                 oms: r.OMSCHRIJVING || 'Geen omschrijving',
                 cohorten: new Set()
             };
         }
-        keuzedeelMap[r.KWALIFICATIE].cohorten.add(r.COHORT);
+        if (r.COHORT) keuzedeelMap[key].cohorten.add(r.COHORT);
     });
 
-    const allCohorten = [...new Set(appState.currentData.map(r => r.COHORT))].sort((a,b)=>a-b);
+    const allCohorten = [...new Set(dataToExport.map(r => r.COHORT).filter(Boolean))].sort((a,b)=>a-b);
 
     if (format === 'csv') {
         let csv = '\uFEFFKWALIFICATIE,OMSCHRIJVING';
@@ -348,7 +396,7 @@ export function exportCurrentSelection(format = 'csv') {
             csv += row + '\n';
         });
 
-        downloadBlob(csv, 'curio_keuzedelen_per_cohort.csv', 'text/csv;charset=utf-8;');
+        downloadBlob(csv, `${filename}.csv`, 'text/csv;charset=utf-8;');
     }
     else if (format === 'json') {
         const jsonData = Object.keys(keuzedeelMap).sort().map(k => ({
@@ -358,7 +406,7 @@ export function exportCurrentSelection(format = 'csv') {
         }));
 
         const json = JSON.stringify(jsonData, null, 2);
-        downloadBlob(json, 'curio_keuzedelen.json', 'application/json');
+        downloadBlob(json, `${filename}.json`, 'application/json');
     }
 }
 
