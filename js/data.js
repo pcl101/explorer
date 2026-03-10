@@ -22,6 +22,14 @@ export async function loadAllData() {
     appState.currentData = [...appState.rawData];
     appState.sbbData = sbbJson.keuzedelen || [];
 
+    // SBB lookup Map voor O(1) toegang i.p.v. O(n) .find()
+    appState.sbbByCode = new Map();
+    if (appState.sbbData) {
+        appState.sbbData.forEach(entry => {
+            if (entry.code) appState.sbbByCode.set(entry.code, entry);
+        });
+    }
+
     // Aarden lookup
     if (aardJson?.aardenkeuzedeel) {
         aardJson.aardenkeuzedeel.forEach(item => {

@@ -41,7 +41,7 @@ export function renderKwalificaties() {
     const rows = Object.keys(map).sort().map(k => {
         const cohorts = [...map[k].ch].sort((a,b) => a - b).join(', ');
 
-        const sbbEntry = appState.sbbData.find(e => e.code === k);
+        const sbbEntry = appState.sbbByCode?.get(k);
         let extraInfo = '';
         if (sbbEntry?.einddatum) {
             const trimmed = String(sbbEntry.einddatum).trim();
@@ -298,7 +298,7 @@ const opleidingData = appState.rawData
 }
 
 export function renderSbbDetail() {
-    const entry = appState.sbbData.find(e => e.code === appState.currentKeuzedeel);
+    const entry = appState.sbbByCode?.get(appState.currentKeuzedeel);
     const titleEl = document.getElementById('sbbDetailTitle');
     const tbody = document.getElementById('sbbInfoBody');
 

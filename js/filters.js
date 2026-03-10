@@ -17,37 +17,37 @@ export function applyFilters() {
         search:   document.getElementById('searchFilter')?.value?.trim() || ''
     };
 
-    // Stap 2: start met alle ruwe data
-    let filteredData = [...appState.rawData];
+    // Stap 2: single-pass filter (veel efficiënter dan gekoppelde .filter() calls)
+    const hasFilters = filters.sector || filters.leerweg || filters.cohort || filters.opleiding || filters.search;
+    
+    let filteredData;
+    if (!hasFilters) {
+        filteredData = appState.rawData;
+    } else {
+        const searchTerm = filters.search ? filters.search.toLowerCase() : '';
+        const cohortNum = filters.cohort ? Number(filters.cohort) : null;
+        
+        filteredData = appState.rawData.filter(r => {
+            if (filters.sector && r.SECTOR !== filters.sector) return false;
+            if (filters.leerweg && r.LEERWEG !== filters.leerweg) return false;
+            if (cohortNum !== null && r.COHORT !== cohortNum) return false;
+            if (filters.opleiding && r.OPLEIDING !== filters.opleiding) return false;
+            if (searchTerm) {
+                const kwal = (r.KWALIFICATIE || '').toLowerCase();
+                const oms = (r.OMSCHRIJVING || '').toLowerCase();
+                if (!kwal.includes(searchTerm) && !oms.includes(searchTerm)) return false;
+            }
+            return true;
+        });
+    }
 
-    // Stap 3: pas filters toe
-    if (filters.sector) {
-        filteredData = filteredData.filter(r => r.SECTOR === filters.sector);
-    }
-    if (filters.leerweg) {
-        filteredData = filteredData.filter(r => r.LEERWEG === filters.leerweg);
-    }
-    if (filters.cohort) {
-        filteredData = filteredData.filter(r => r.COHORT === Number(filters.cohort));
-    }
-    if (filters.opleiding) {
-        filteredData = filteredData.filter(r => r.OPLEIDING === filters.opleiding);
-    }
-    if (filters.search) {
-        const term = filters.search.toLowerCase();
-        filteredData = filteredData.filter(r =>
-            r.KWALIFICATIE.toLowerCase().includes(term) ||
-            (r.OMSCHRIJVING || '').toLowerCase().includes(term)
-        );
-    }
-
-    // Stap 4: update globale state
+    // Stap 3: update globale state
     appState.currentData = filteredData;
 
-    // Stap 5: vul dropdowns opnieuw (met beperkte opties op basis van gefilterde data)
+    // Stap 4: vul dropdowns opnieuw (met beperkte opties op basis van gefilterde data)
     populateFilters();
 
-    // Stap 6: herstel de eerder geselecteerde waarden (ze gaan anders verloren bij herbouwen)
+    // Stap 5: herstel de eerder geselecteerde waarden (ze gaan anders verloren bij herbouwen)
     restoreFilterValues(filters);
 
     // Stap 7: update tabel + tekst "Huidige filters"
