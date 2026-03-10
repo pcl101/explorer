@@ -30,16 +30,16 @@ export function renderKwalificaties() {
     const map = {};
     appState.currentData.forEach(r => {
         if (!map[r.KWALIFICATIE]) {
-            map[r.KWALIFICATIE] = { oms: r.OMSCHRIJVING || 'Geen omschrijving', ch: new Set() };
+            map[r.KWALIFICATIE] = { omschrijving: r.OMSCHRIJVING || 'Geen omschrijving', cohorten: new Set() };
         }
-        map[r.KWALIFICATIE].ch.add(r.COHORT);
+        map[r.KWALIFICATIE].cohorten.add(r.COHORT);
     });
 
     const count = Object.keys(map).length;
     document.getElementById('resultCount').textContent = `(${count} ${count === 1 ? 'keuzedeel' : 'keuzedelen'})`;
 
     const rows = Object.keys(map).sort().map(k => {
-        const cohorts = [...map[k].ch].sort((a,b) => a - b).join(', ');
+        const cohorts = [...map[k].cohorten].sort((a,b) => a - b).join(', ');
 
         const sbbEntry = appState.sbbByCode?.get(k);
         let extraInfo = '';
@@ -65,7 +65,7 @@ export function renderKwalificaties() {
                 <strong>${k}</strong>
                 <i class="bi bi-info-circle info-icon ms-2 text-primary" style="font-size:1.1rem;" title="Meer informatie over dit keuzedeel"></i>
             </td>
-            <td>${map[k].oms}${overlapIcon}${extraInfo}</td>
+            <td>${map[k].omschrijving}${overlapIcon}${extraInfo}</td>
             <td>${cohorts}</td>
         `;
 
@@ -74,7 +74,7 @@ export function renderKwalificaties() {
         // Rij-klik: ga naar volledige detailView (alle opleidingen)
         tr.onclick = () => {
             appState.currentKeuzedeel = k;
-            appState.currentOmschrijving = map[k].oms;
+            appState.currentOmschrijving = map[k].omschrijving;
             document.getElementById('detailTitle').textContent = `Keuzedeel ${k} — ${appState.currentOmschrijving}`;
             showView('detailView');
             appState.viewHistory.push('detailView');
@@ -113,7 +113,7 @@ export function renderKwalificaties() {
             e.stopPropagation();  // Voorkom dat rij-klik triggert
             const k = e.target.dataset.kwal;
             appState.currentKeuzedeel = k;
-            appState.currentOmschrijving = map[k]?.oms || 'Geen omschrijving';
+            appState.currentOmschrijving = map[k]?.omschrijving || 'Geen omschrijving';
             document.getElementById('overlapDetailTitle').textContent = `Overlap voor keuzedeel ${k} — ${appState.currentOmschrijving}`;
             showView('overlapDetailView');
             appState.viewHistory.push('overlapDetailView');
@@ -144,7 +144,7 @@ export function updateExpiredPage() {
         if (trimmed && trimmed !== 'null' && trimmed !== 'undefined') {
             expiredList.push({
                 code,
-                oms: entry.titel || 'Geen omschrijving',
+                omschrijving: entry.titel || 'Geen omschrijving',
                 vervaldatum: trimmed
             });
         }
@@ -157,11 +157,11 @@ export function updateExpiredPage() {
     const rows = expiredList.map(item => {
         const tr = document.createElement('tr');
         tr.className = 'clickable-row';
-        tr.innerHTML = `<td><strong>${item.code}</strong></td><td>${item.oms}</td><td>${item.vervaldatum}</td>`;
+        tr.innerHTML = `<td><strong>${item.code}</strong></td><td>${item.omschrijving}</td><td>${item.vervaldatum}</td>`;
         tr.onclick = () => {
             appState.currentKeuzedeel = item.code;
-            appState.currentOmschrijving = item.oms;
-            document.getElementById('expiredDetailTitle').textContent = `Vervallen keuzedeel ${item.code} — ${item.oms}`;
+            appState.currentOmschrijving = item.omschrijving;
+            document.getElementById('expiredDetailTitle').textContent = `Vervallen keuzedeel ${item.code} — ${item.omschrijving}`;
             showView('expiredDetailView');
             appState.viewHistory.push('expiredDetailView');
             updateSelectionText();
@@ -370,9 +370,9 @@ export function updateStatisticsPage() {
     list.innerHTML = top10.length ? '' : '<li class="text-muted">Geen data</li>';
 
     top10.forEach(([code, cnt]) => {
-        const oms = appState.currentData.find(r => r.KWALIFICATIE === code)?.OMSCHRIJVING || 'Onbekend';
+        const omschrijving = appState.currentData.find(r => r.KWALIFICATIE === code)?.OMSCHRIJVING || 'Onbekend';
         const li = document.createElement('li');
-        li.innerHTML = `<strong>${code}</strong> — ${oms} <span class="text-muted float-end">${cnt}×</span>`;
+        li.innerHTML = `<strong>${code}</strong> — ${omschrijving} <span class="text-muted float-end">${cnt}×</span>`;
         list.appendChild(li);
     });
 }
@@ -391,23 +391,23 @@ export function updateOverlapPage() {
     appState.rawData.forEach(r => {
         if (!currentSet.has(r.KWALIFICATIE)) return;
         if (!overlap[r.KWALIFICATIE]) {
-            overlap[r.KWALIFICATIE] = { oms: r.OMSCHRIJVING || 'Onbekend', sec: new Set(), opl: new Set() };
+            overlap[r.KWALIFICATIE] = { omschrijving: r.OMSCHRIJVING || 'Onbekend', sectoren: new Set(), opleidingen: new Set() };
         }
-        overlap[r.KWALIFICATIE].sec.add(r.SECTOR);
-        overlap[r.KWALIFICATIE].opl.add(r.OPLEIDING);
+        overlap[r.KWALIFICATIE].sectoren.add(r.SECTOR);
+        overlap[r.KWALIFICATIE].opleidingen.add(r.OPLEIDING);
     });
 
     const rows = Object.entries(overlap)
-        .filter(([,v]) => v.sec.size > 1)
-        .sort((a,b) => b[1].sec.size - a[1].sec.size || b[1].opl.size - a[1].opl.size)
-        .map(([code, {oms, sec, opl}]) => {
+        .filter(([,v]) => v.sectoren.size > 1)
+        .sort((a,b) => b[1].sectoren.size - a[1].sectoren.size || b[1].opleidingen.size - a[1].opleidingen.size)
+        .map(([code, {omschrijving, sectoren, opleidingen}]) => {
             const tr = document.createElement('tr');
             tr.className = 'clickable-row';
-            tr.innerHTML = `<td><strong>${code}</strong></td><td>${oms}</td><td>${sec.size}</td><td>${opl.size}</td>`;
+            tr.innerHTML = `<td><strong>${code}</strong></td><td>${omschrijving}</td><td>${sectoren.size}</td><td>${opleidingen.size}</td>`;
             tr.onclick = () => {
                 appState.currentKeuzedeel = code;
-                appState.currentOmschrijving = oms;
-                document.getElementById('detailTitle').textContent = `Keuzedeel ${code} — ${oms}`;
+                appState.currentOmschrijving = omschrijving;
+                document.getElementById('detailTitle').textContent = `Keuzedeel ${code} — ${omschrijving}`;
                 showView('detailView');
                 appState.viewHistory.push('detailView');
                 renderDetailOpleidingen();
@@ -430,22 +430,22 @@ function groupBySectorOpleiding(data) {
     data.forEach(r => {
         const key = `${r.SECTOR}|${r.OPLEIDING}`;
         if (!grouped[key]) {
-            grouped[key] = { sec: r.SECTOR, opl: r.OPLEIDING, crebo: r.CREBO, ch: new Set() };
+            grouped[key] = { sectoren: r.SECTOR, opleidingen: r.OPLEIDING, crebo: r.CREBO, cohorten: new Set() };
         }
-        grouped[key].ch.add(r.COHORT);
+        grouped[key].cohorten.add(r.COHORT);
     });
     return grouped;
 }
 
 function createGroupedRows(grouped) {
     return Object.values(grouped)
-        .sort((a,b) => a.sec.localeCompare(b.sec) || a.opl.localeCompare(b.opl))
+        .sort((a,b) => a.sectoren.localeCompare(b.sectoren) || a.opleidingen.localeCompare(b.opleidingen))
         .map(item => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${item.sec}</td>
-                <td>${item.opl} (${item.crebo})</td>
-                <td>${[...item.ch].sort((a,b)=>a-b).join(', ')}</td>
+                <td>${item.sectoren}</td>
+                <td>${item.opleidingen} (${item.crebo})</td>
+                <td>${[...item.cohorten].sort((a,b)=>a-b).join(', ')}</td>
             `;
             return tr;
         });
