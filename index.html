@@ -340,7 +340,11 @@
             <div id="overlapDetailPagination" class="pagination-controls no-print text-center mt-3"></div>
         </div>
 
-        <div id="loading" class="alert alert-info text-center mt-5 no-print" style="max-width: 600px; margin: 0 auto;">Data laden...</div>
+        <div id="loading" class="alert alert-info text-center mt-5 no-print" style="max-width: 600px; margin: 0 auto;">
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            Data laden...
+        </div>
+        <div id="errorMessage" class="alert alert-danger text-center mt-5 no-print" style="max-width: 600px; margin: 0 auto; display: none;"></div>
     </div>
 
     <script type="module" src="js/main.js"></script>
