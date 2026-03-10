@@ -11,6 +11,7 @@ export function showView(viewId) {
         const el = document.getElementById(id);
         if (el) el.style.display = (id === viewId) ? 'block' : 'none';
     });
+    appState.currentView = viewId;
 }
 
 export function showViewWithHistory(viewId, afterShowCallback = null) {

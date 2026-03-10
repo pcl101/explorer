@@ -11,6 +11,35 @@ export function printFullSelection() {
             return;
         }
 
+        // Bepaal welke data te gebruiken op basis van huidige view
+        let dataToPrint;
+        let viewTitle = 'Huidige Selectie';
+        
+        const view = appState.currentView;
+        
+        // Bereken overlap data opnieuw als we op overlapView zijn
+        if (view === 'overlapView') {
+            const currentSet = new Set(appState.currentData.map(r => r.KWALIFICATIE));
+            const overlap = {};
+            appState.rawData.forEach(r => {
+                if (!currentSet.has(r.KWALIFICATIE)) return;
+                if (!overlap[r.KWALIFICATIE]) {
+                    overlap[r.KWALIFICATIE] = { omschrijving: r.OMSCHRIJVING || 'Onbekend', sectoren: new Set() };
+                }
+                overlap[r.KWALIFICATIE].sectoren.add(r.SECTOR);
+            });
+            // Alleen keuzedelen met spreiding (meer dan 1 sector)
+            const overlapEntries = Object.entries(overlap).filter(([,v]) => v.sectoren.size > 1);
+            dataToPrint = overlapEntries.map(([code, data]) => ({
+                KWALIFICATIE: code,
+                OMSCHRIJVING: data.omschrijving,
+                COHORT: [...data.sectoren].join(', ')
+            }));
+            viewTitle = 'Spreiding';
+        } else {
+            dataToPrint = appState.currentData;
+        }
+
         const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
         // Header informatie
@@ -21,7 +50,7 @@ export function printFullSelection() {
         const resultCountText = resultCountElem ? resultCountElem.innerText.trim().replace(/[()]/g, '') : '';
 
         doc.setFontSize(16);
-        doc.text('Curio Keuzedelen Explorer - Huidige Selectie', 14, 15);
+        doc.text(`Curio Keuzedelen Explorer - ${viewTitle}`, 14, 15);
 
         doc.setFontSize(11);
         doc.setTextColor(100);
@@ -33,9 +62,9 @@ export function printFullSelection() {
 
         doc.line(14, resultCountText ? 38 : 32, 280, resultCountText ? 38 : 32);
 
-        // Unieke keuzedelen verzamelen (zelfde logica als CSV-export)
+        // Unieke keuzedelen verzamelen
         const keuzedeelMap = {};
-        appState.currentData.forEach(r => {
+        dataToPrint.forEach(r => {
         const key = r.KWALIFICATIE;
         if (!keuzedeelMap[key]) {
             keuzedeelMap[key] = {
