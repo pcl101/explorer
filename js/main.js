@@ -36,7 +36,6 @@ window.appState = {
     overlapSet: new Set(),
     sectorkamerLookup: {},
     viewHistory: ['mainView'],
-    currentView: 'mainView',
     uniqueKeuzChart: null,
     newKeuzChart: null,
 };

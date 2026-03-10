@@ -161,9 +161,6 @@ export function updateExpiredPage() {
 
     expiredList.sort((a, b) => a.code.localeCompare(b.code));
 
-    // Bewaar data voor export
-    appState.expiredData = expiredList;
-
     document.getElementById('expiredCount').textContent = `(${expiredList.length} vervallen keuzedelen)`;
 
     const rows = expiredList.map(item => {
@@ -441,14 +438,6 @@ export function updateOverlapPage() {
             };
             return tr;
         });
-
-    // Bewaar data voor export
-    appState.overlapExportData = Object.keys(overlap).map(k => ({
-        KWALIFICATIE: k,
-        OMSCHRIJVING: overlap[k].omschrijving,
-        SECTOREN: [...overlap[k].sectoren].join('; '),
-        OPLEIDINGEN: [...overlap[k].opleidingen].join('; ')
-    }));
 
     appState.pagination = appState.pagination || {};
     appState.pagination.overlap = { page: 1, size: 10, data: rows };
