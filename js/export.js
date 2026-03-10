@@ -3,38 +3,39 @@
 import { renderPage, renderPagination } from './pagination.js';
 
 export function printFullSelection() {
-    const { jsPDF } = window.jspdf;
-    if (!jsPDF) {
-        alert('jsPDF kon niet geladen worden. Controleer de console voor fouten.');
-        console.error('jsPDF niet beschikbaar');
-        return;
-    }
+    try {
+        const { jsPDF } = window.jspdf;
+        if (!jsPDF) {
+            alert('jsPDF kon niet geladen worden. Controleer de console voor fouten.');
+            console.error('jsPDF niet beschikbaar');
+            return;
+        }
 
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-    // Header informatie
-    const selectionTextElem = document.getElementById('currentSelection');
-    const selectionText = selectionTextElem ? selectionTextElem.innerText.trim() : 'Huidige selectie';
+        // Header informatie
+        const selectionTextElem = document.getElementById('currentSelection');
+        const selectionText = selectionTextElem ? selectionTextElem.innerText.trim() : 'Huidige selectie';
 
-    const resultCountElem = document.getElementById('resultCount');
-    const resultCountText = resultCountElem ? resultCountElem.innerText.trim().replace(/[()]/g, '') : '';
+        const resultCountElem = document.getElementById('resultCount');
+        const resultCountText = resultCountElem ? resultCountElem.innerText.trim().replace(/[()]/g, '') : '';
 
-    doc.setFontSize(16);
-    doc.text('Curio Keuzedelen Explorer - Huidige Selectie', 14, 15);
+        doc.setFontSize(16);
+        doc.text('Curio Keuzedelen Explorer - Huidige Selectie', 14, 15);
 
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    doc.text(selectionText, 14, 22);
-    if (resultCountText) {
-        doc.text(`Aantal unieke keuzedelen: ${resultCountText}`, 14, 28);
-    }
-    doc.text(`gegenereerd op: ${new Date().toLocaleString('nl-NL')}`, 14, resultCountText ? 34 : 28);
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        doc.text(selectionText, 14, 22);
+        if (resultCountText) {
+            doc.text(`Aantal unieke keuzedelen: ${resultCountText}`, 14, 28);
+        }
+        doc.text(`gegenereerd op: ${new Date().toLocaleString('nl-NL')}`, 14, resultCountText ? 34 : 28);
 
-    doc.line(14, resultCountText ? 38 : 32, 280, resultCountText ? 38 : 32);
+        doc.line(14, resultCountText ? 38 : 32, 280, resultCountText ? 38 : 32);
 
-    // Unieke keuzedelen verzamelen (zelfde logica als CSV-export)
-    const keuzedeelMap = {};
-    appState.currentData.forEach(r => {
+        // Unieke keuzedelen verzamelen (zelfde logica als CSV-export)
+        const keuzedeelMap = {};
+        appState.currentData.forEach(r => {
         const key = r.KWALIFICATIE;
         if (!keuzedeelMap[key]) {
             keuzedeelMap[key] = {
@@ -86,6 +87,10 @@ export function printFullSelection() {
     // Download
     const filename = `curio_keuzedelen_selectie_${new Date().toISOString().slice(0,10)}.pdf`;
     doc.save(filename);
+    } catch (err) {
+        console.error('PDF fout:', err);
+        alert('Fout bij maken PDF: ' + err.message);
+    }
 }
 
 export function printDetailSelection() {
